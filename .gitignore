@@ -1,7 +1,8 @@
 server/.vscode
 */node_modules
 */package-lock.json
-*/.env
+.env
+server/build
 
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.

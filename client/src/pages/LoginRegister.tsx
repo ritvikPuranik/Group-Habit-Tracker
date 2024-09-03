@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, Card } from 'antd';
 import { REACT_APP_API_URL, CONVERSATION_ID } from '../setupEnv';
 import { useAuth } from '../AuthContext';
 import { socket } from 'src/socket';
 
-
+interface AuthResponse {
+    user:{
+        id: number;
+    }
+};
 const LoginRegister = () => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [showRegister, setShowRegister] = useState(false);
     const { setToken } = useAuth() as { setToken: (tokenData: {id: number, email: string}) => void };
@@ -28,31 +34,40 @@ const LoginRegister = () => {
     };
 
     const handleLogin = async() => {
-        let responseObj: {id: number} = {id: 0};
+        let responseObj: AuthResponse;
         setLoading(true);
-        
-        console.log("base url>", REACT_APP_API_URL, credentials);
-        const response: any = await fetch(`${REACT_APP_API_URL}/login`, {
-            method: 'POST',
-            body: JSON.stringify({ ...credentials }),
-            headers: {
-            'Content-Type': 'application/json'
+        try{
+            console.log("base url>", REACT_APP_API_URL, credentials);
+            const response: any = await fetch(`${REACT_APP_API_URL}/login`, {
+                method: 'POST',
+                body: JSON.stringify({ ...credentials }),
+                headers: {
+                'Content-Type': 'application/json'
+                }
+            });
+            if(!response.ok) throw new Error("Error in fetching login details");
+
+            responseObj = await response.json();
+            console.log("responseObj>", responseObj);
+            if(responseObj.user.id) {
+                console.log("received id>", responseObj);
+                setToken({id: responseObj.user.id, email: credentials.email});
+                navigate('/');
+                
+            }else {
+                alert("Login Failed. User not authenticated");
             }
-        });
-        responseObj = await response.json(); 
-        if(responseObj.id) {
-            setToken({id: responseObj.id, email: credentials.email});
-            //set session storage to store the token
-            sessionStorage.setItem('token', JSON.stringify({id: responseObj.id}));
-            
-        }else {
-            alert("Login Failed. User not authenticated");
+            setLoading(false);
+
+        }catch(err){
+            console.log("error in loggin in>", err);
+            alert(`Login Failed. ${err}`);
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleRegister = async() => {
-        let responseObj: {id: number} = {id: 0};
+        let responseObj: AuthResponse;
         setLoading(true);
         
         console.log("base url>", REACT_APP_API_URL, credentials);
@@ -65,13 +80,12 @@ const LoginRegister = () => {
             }
         });
         responseObj = await response.json(); 
-        if(responseObj.id) {
-            setToken({id: responseObj.id, email: credentials.email});
-            sessionStorage.setItem('token', JSON.stringify({id: responseObj.id}));
-
+        if(responseObj.user.id) {
+            setToken({id: responseObj.user.id, email: credentials.email});
             //emit new user joined event
-            const email: string = credentials.email;
-            socket.emit('new-user-joined', {email: email, id: responseObj.id, conversationId: CONVERSATION_ID});
+            const email = credentials.email;
+            socket.emit('new-user-joined', {email: email, id: responseObj.user.id, conversationId: CONVERSATION_ID});
+            navigate('/');
         }else {
             alert("Registration Failed! User already exists");
         }
@@ -80,65 +94,68 @@ const LoginRegister = () => {
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                {showRegister ? (
-                    <Card title="Register" style={{ width: 300 }}>
-                        <Form onFinish={handleRegister}>
-                            <Form.Item
-                                name="name"
-                                rules={[{ required: true, message: 'Please enter your first name' }]}
-                            >
-                                <Input placeholder="First Name" onChange={handleInputChange}/>
-                            </Form.Item>
-                            <Form.Item
-                                name="email"
-                                rules={[{ required: true, message: 'Please enter your email' }]}
-                            >
-                                <Input placeholder="Email" onChange={handleInputChange}/>
-                            </Form.Item>
-                            <Form.Item
-                                name="password"
-                                rules={[{ required: true, message: 'Please enter your password' }]}
-                            >
-                                <Input.Password placeholder="Password" onChange={handleInputChange}/>
-                            </Form.Item>
-                            <Form.Item>
-                                <Button type="primary" htmlType="submit" loading={loading}>
+        <>
+            <h1>HabitHub</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height:'45vh' }}>
+                    {showRegister ? (
+                        <Card title="Register" style={{ width: 300 }}>
+                            <Form onFinish={handleRegister}>
+                                <Form.Item
+                                    name="name"
+                                    rules={[{ required: true, message: 'Please enter your first name' }]}
+                                >
+                                    <Input placeholder="First Name" onChange={handleInputChange}/>
+                                </Form.Item>
+                                <Form.Item
+                                    name="email"
+                                    rules={[{ required: true, message: 'Please enter your email' }]}
+                                >
+                                    <Input placeholder="Email" onChange={handleInputChange}/>
+                                </Form.Item>
+                                <Form.Item
+                                    name="password"
+                                    rules={[{ required: true, message: 'Please enter your password' }]}
+                                >
+                                    <Input.Password placeholder="Password" onChange={handleInputChange}/>
+                                </Form.Item>
+                                <Form.Item>
+                                    <Button type="primary" htmlType="submit" loading={loading}>
+                                        Register
+                                    </Button>
+                                </Form.Item>
+                                <Button type="link" onClick={handleToggleRegister}>
+                                    Back to Login
+                                </Button>
+                            </Form>
+                        </Card>
+                    ) : (
+                        <Card title="Login" style={{ width: 300 }}>
+                            <Form onFinish={handleLogin} >
+                                <Form.Item
+                                    name="email"
+                                    rules={[{ required: true, message: 'Please enter your email'}]}
+                                >
+                                    <Input placeholder="Email" onChange={handleInputChange} />
+                                </Form.Item>
+                                <Form.Item
+                                    name="password"
+                                    rules={[{ required: true, message: 'Please enter your password' }]}
+                                >
+                                    <Input.Password placeholder="Password" onChange={handleInputChange} />
+                                </Form.Item>
+                                <Form.Item>
+                                    <Button type="primary" htmlType="submit" loading={loading}>
+                                        Login
+                                    </Button>
+                                </Form.Item>
+                                <Button type="link" onClick={handleToggleRegister}>
                                     Register
                                 </Button>
-                            </Form.Item>
-                            <Button type="link" onClick={handleToggleRegister}>
-                                Back to Login
-                            </Button>
-                        </Form>
-                    </Card>
-                ) : (
-                    <Card title="Login" style={{ width: 300 }}>
-                        <Form onFinish={handleLogin} >
-                            <Form.Item
-                                name="email"
-                                rules={[{ required: true, message: 'Please enter your email'}]}
-                            >
-                                <Input placeholder="Email" onChange={handleInputChange} />
-                            </Form.Item>
-                            <Form.Item
-                                name="password"
-                                rules={[{ required: true, message: 'Please enter your password' }]}
-                            >
-                                <Input.Password placeholder="Password" onChange={handleInputChange} />
-                            </Form.Item>
-                            <Form.Item>
-                                <Button type="primary" htmlType="submit" loading={loading}>
-                                    Login
-                                </Button>
-                            </Form.Item>
-                            <Button type="link" onClick={handleToggleRegister}>
-                                Register
-                            </Button>
-                        </Form>
-                    </Card>
-                )}
-        </div>
+                            </Form>
+                        </Card>
+                    )}
+            </div>
+        </>
     );
 };
 
