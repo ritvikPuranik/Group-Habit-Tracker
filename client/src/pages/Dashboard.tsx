@@ -16,10 +16,10 @@ const Dashboard: React.FC = () => {
                 <h1>Group Habit Tracker</h1>
                 <UserProfile />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', boxShadow:'2px 2px 15px black', minHeight: '500px', maxHeight:'500px', borderRadius:'10px' }}>
+            {/* <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh', boxShadow:'2px 2px 15px black', minHeight: '500px', maxHeight:'500px', borderRadius:'10px' }}>
                 <ChatPane />
                 <TaskTracker />
-            </div>
+            </div> */}
         </div>
     );
 };
