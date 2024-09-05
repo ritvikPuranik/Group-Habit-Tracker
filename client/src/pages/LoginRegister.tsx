@@ -27,7 +27,6 @@ const LoginRegister = () => {
         setShowRegister(!showRegister);
     };
     const handleInputChange = (e) => {
-        console.log("credentials>", credentials);
         const { id, value } = e.target;
         setCredentials(prevState => ({
             ...prevState,
