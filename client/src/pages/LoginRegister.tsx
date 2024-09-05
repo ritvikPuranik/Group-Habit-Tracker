@@ -8,13 +8,15 @@ import { socket } from 'src/socket';
 interface AuthResponse {
     user:{
         id: number;
+        email: string;
+        firstName: string;
     }
 };
 const LoginRegister = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [showRegister, setShowRegister] = useState(false);
-    const { setToken } = useAuth() as { setToken: (tokenData: {id: number, email: string}) => void };
+    const { setToken } = useAuth() as { setToken: (tokenData: {id: number, email: string, firstName: string}) => void };
     const [credentials, setCredentials] = useState({
         email: '',
         password: '',
@@ -40,6 +42,7 @@ const LoginRegister = () => {
             console.log("base url>", REACT_APP_API_URL, credentials);
             const response: any = await fetch(`${REACT_APP_API_URL}/login`, {
                 method: 'POST',
+                credentials: 'include', // Include credentials (cookies)
                 body: JSON.stringify({ ...credentials }),
                 headers: {
                 'Content-Type': 'application/json'
@@ -51,7 +54,7 @@ const LoginRegister = () => {
             console.log("responseObj>", responseObj);
             if(responseObj.user.id) {
                 console.log("received id>", responseObj);
-                setToken({id: responseObj.user.id, email: credentials.email});
+                setToken(responseObj.user);
                 navigate('/');
                 
             }else {
@@ -67,24 +70,26 @@ const LoginRegister = () => {
     };
 
     const handleRegister = async() => {
-        let responseObj: AuthResponse;
+        let responseObj;
         setLoading(true);
         
         console.log("base url>", REACT_APP_API_URL, credentials);
         console.log("credentials>", credentials);
         const response: any = await fetch(`${REACT_APP_API_URL}/register`, {
             method: 'POST',
+            credentials: 'include', // Include credentials (cookies)
             body: JSON.stringify({ ...credentials }),
             headers: {
             'Content-Type': 'application/json'
             }
         });
         responseObj = await response.json(); 
+        console.log("response from register usre>", responseObj);
         if(responseObj.user.id) {
-            setToken({id: responseObj.user.id, email: credentials.email});
+            setToken(responseObj.user);
             //emit new user joined event
             const email = credentials.email;
-            socket.emit('new-user-joined', {email: email, id: responseObj.user.id, conversationId: CONVERSATION_ID});
+            socket.emit('new-user-joined', {email: email, id: responseObj.id, conversationId: CONVERSATION_ID, firstName: responseObj.firstName});
             navigate('/');
         }else {
             alert("Registration Failed! User already exists");

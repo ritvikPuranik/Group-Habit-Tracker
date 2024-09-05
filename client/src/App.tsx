@@ -6,40 +6,71 @@ import Dashboard from './pages/Dashboard';
 import { useAuth } from './AuthContext';
 import { socket } from './socket';
 
+
 function App() {
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const { tokenDetails, setToken } = useAuth() as any;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Loading state
+
+  // useEffect(() => {
+  //   function onConnect() {
+  //     console.log("client-server connected");
+  //     setIsConnected(true);
+  //   }
+    
+  //   function onDisconnect() {
+  //     console.log("client-server DISCONNECTED ");
+  //     setIsConnected(false);
+  //   }
+  //   socket.on('connect', onConnect);
+  //   socket.on('disconnect', onDisconnect);
+
+  //   return () => {
+  //     socket.off('connect', onConnect);
+  //     // socket.off('disconnect', onDisconnect);
+  //   };
+  // }, []);
 
   useEffect(() => {
-    function onConnect() {
-      console.log("client-server connected");
-      setIsConnected(true);
-    }
-    
-    function onDisconnect() {
-      console.log("client-server DISCONNECTED ");
-      setIsConnected(false);
-    }
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
+    const checkIfAuthenticated = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/`, {
+          method: 'GET',
+          credentials: 'include', // Include credentials (cookies)
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-    return () => {
-      socket.off('connect', onConnect);
-      // socket.off('disconnect', onDisconnect);
+        if (response.ok) {
+          const responseJson = await response.json();
+          setIsAuthenticated(true);
+          setToken(responseJson.user);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false); // Set loading to false after checking
+      }
     };
+
+    checkIfAuthenticated();
   }, []);
 
-  useEffect(()=>{
+  // Show loading indicator while checking authentication
+  if (isLoading) {
+    return <div>Loading...</div>; // Replace with a spinner or loading component if desired
+  }
 
-  })
-
-
-  const { tokenDetails } = useAuth() as { tokenDetails: {id: number} };
   return (
     <div className="App" style={{width: '80%' }}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+          <Route path="/" element={isAuthenticated || tokenDetails.id ? <Dashboard /> : <Navigate to="/login" />} />
           <Route path="/login" element={<LoginRegister />} />
         </Routes>
       </BrowserRouter>
