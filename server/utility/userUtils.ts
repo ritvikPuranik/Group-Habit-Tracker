@@ -3,7 +3,8 @@ import User from "../models/User";
 interface User{
     id: number,
     email: string,
-    password: string
+    password: string,
+    first_name: string
 }
 
 class Users{
@@ -26,7 +27,12 @@ class Users{
     //function to fetch user record by email in sequelize
     static getUser = async(filter: any): Promise<User | null> => {
         try {
-            const user = await User.findOne({ where: filter });
+            const user = await User.findOne({ 
+                where: filter,
+                attributes: { exclude: ['createdAt', 'updatedAt'] }, // Exclude the fields
+                raw: true
+
+             });
             if(user) {
                 return user;
             }

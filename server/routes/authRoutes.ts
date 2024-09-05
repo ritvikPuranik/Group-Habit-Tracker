@@ -5,14 +5,6 @@ import Users from '../utility/userUtils';
 
 const router = express.Router();
 
-// Define user type (replace with actual user model type if available)
-interface User {
-  id: number;
-  email?: string;
-  password?: string; // Assuming password might be stored, but ideally it should not be in the session
-  // Add more fields as needed
-}
-
 passport.use(new LocalStrategy(
   {
     usernameField: 'email', // Use email instead of username
@@ -40,17 +32,19 @@ passport.use(new LocalStrategy(
 passport.serializeUser(function(user: any, done) {
   process.nextTick(function() {
     console.log("Entered serialize>", user);
-    return done(null, user.id);
+    return done(null, {id: user.id, email: user.email, firstName: user.first_name});
   });
 });
 
-passport.deserializeUser(async (id, done: (err: any, user?: User | null) => void) => {
+passport.deserializeUser(async ({id}, done: (err: any, user?: any) => void) => {
   console.log("entered deserialze>", id);
   process.nextTick(async () => {
     try{
-      const user = await Users.getUser({id: id});
-      console.log("user>", user);
-      return done(null, user);
+      const user: any = await Users.getUser({id: id});
+      console.log("user found>", user);
+      const {password, ...userWithoutPassword} = user;
+      console.log("user without pwd>", userWithoutPassword);
+      return done(null, userWithoutPassword);
     }catch(err){
       done(err);
     }
@@ -58,8 +52,8 @@ passport.deserializeUser(async (id, done: (err: any, user?: User | null) => void
 
 });
 
-router.post('/login', (req, res, next) => {
-  console.log("entered login>", req.body);
+const loginHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log("entered login>", req.body, req.session);
   // Use passport.authenticate with a callback to handle the responses
   passport.authenticate('local', (err: any, user: any, info: any) => {
     // Handle error during authentication
@@ -79,10 +73,12 @@ router.post('/login', (req, res, next) => {
       }
 
       // Successful login response
-      return res.status(201).json({ success: true, message: 'Login successful!', user: { id: user.id } });
+      return res.status(201).json({ success: true, message: 'Login successful!', user: { id: user.id, email: user.email, firstName: user.first_name } });
     });
   })(req, res, next); // Pass req, res, next to the authenticate function
-});
+}
+
+router.post('/login', loginHandler);
 
 
 // Route for registration
@@ -93,12 +89,18 @@ router.post('/register', async (req: Request, res: Response, next) => {
   try {
     const id = await Users.findOrCreate(email, password, name);
     if (id) {
-      req.login({id: id, username: name}, function(err) {
-        if (err) { return next(err); }
-      });
-      res.status(201).send({ id: id });
+      // (req.session as any).registrationData = { //This will be accessed from /login to authenticate the user
+      //   email: email,
+      //   password: password
+      // };
+      req.body = {
+        email: email,
+        password: password,
+        name: name
+      };
+      loginHandler(req, res, next);
     } else {
-      res.status(400).send({ error: 'User already exists!' });
+      res.status(401).send({ error: 'User already exists!' });
     }
   } catch (error) {
     res.status(500).send({ error: 'Server error, please try again later!' });

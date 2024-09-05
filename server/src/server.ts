@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import cors from 'cors';
 import { Server } from 'socket.io';
 import { createServer, get } from 'http';
 var cookieParser = require('cookie-parser');
@@ -10,6 +11,7 @@ import passport from 'passport';
 import sequelize from '../config/database';
 import Users from '../utility/userUtils';
 import authRouter from '../routes/authRoutes';
+import isAuthenticated from '../middlewares/isAuthenticated';
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 // Create a new express application instance
@@ -20,18 +22,24 @@ const server = createServer(app);
 app.use(express.json());//parse json request body
 app.use(cookieParser());
 app.use(session({
-    secret: 'abc123',
+    secret: process.env.SESSION_SECRET || 'abc123',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }
+    saveUninitialized: false,
+    cookie: { 
+        secure: false,
+        httpOnly: true, // Helps prevent XSS attacks
+        // sameSite: 'lax', // Adjust as needed: 'strict', 'lax', or 'none'
+        maxAge: 1000 * 60 * 60 * 24 // Cookie expiry (1 day)
+    
+     }
 }));
-app.use(passport.authenticate('session'));
-app.use((req, res, next) => {// cors middleware
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    next();
-});
+// app.use(passport.authenticate('session'));
+app.use(passport.session());
+app.use(cors({
+    origin: process.env.CONSOLE_URL,
+    credentials: true, // Allow credentials (cookies) to be sent
+  }));
+  
 
 // Define user type
 interface User {
@@ -54,9 +62,10 @@ app.use('/', authRouter);
 // });
 // io.listen(server);
 
-app.get('/', (req, res) => {
+app.get('/', isAuthenticated, (req, res) => {
     console.log("request user>", req.user);
-    res.status(200);
+    res.status(200).json({ success: true, message: 'Welcome to your dashboard!', user: req.user });
+
 });
 
 
