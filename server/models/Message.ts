@@ -2,7 +2,7 @@ import sequelize from "../config/database.js";
 import { Sequelize, DataTypes } from "sequelize";
 
 const Message = sequelize.define( //stores the message data
-    "message",
+    "messages",
     {
         message:{
             type:DataTypes.STRING,

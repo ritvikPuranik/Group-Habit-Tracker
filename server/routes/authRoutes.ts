@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import Users from '../utility/userUtils';
+import User from '../controllers/userController';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ passport.use(new LocalStrategy(
   async (email: string, password: string, done: any) => {
     try {
       console.log("Entered LocalStrategy>", email, password);
-      const user = await Users.getUser({ email: email });
+      const user = await User.getUser({ email: email });
       console.log("User found>");
       if (!user || !user.id) {
         return done(null, false, { message: `User doesn't exist` });
@@ -40,7 +40,7 @@ passport.deserializeUser(async ({id}, done: (err: any, user?: any) => void) => {
   console.log("entered deserialze>", id);
   process.nextTick(async () => {
     try{
-      const user: any = await Users.getUser({id: id});
+      const user: any = await User.getUser({id: id});
       console.log("user found>", user);
       const {password, ...userWithoutPassword} = user;
       console.log("user without pwd>", userWithoutPassword);
@@ -53,15 +53,12 @@ passport.deserializeUser(async ({id}, done: (err: any, user?: any) => void) => {
 });
 
 const loginHandler = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.log("entered login>", req.body, req.session);
   // Use passport.authenticate with a callback to handle the responses
   passport.authenticate('local', (err: any, user: any, info: any) => {
-    // Handle error during authentication
     if (err) {
       return res.status(500).json({ success: false, message: 'An error occurred during login.', error: err });
     }
 
-    // Handle case where authentication fails (e.g., incorrect credentials)
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
@@ -80,14 +77,13 @@ const loginHandler = async (req: express.Request, res: express.Response, next: e
 
 router.post('/login', loginHandler);
 
-
 // Route for registration
 router.post('/register', async (req: Request, res: Response, next) => {
   console.log('register>', req.body);
   const { email, password, name } = req.body;
   
   try {
-    const id = await Users.findOrCreate(email, password, name);
+    const id = await User.createNew(email, password, name);
     if (id) {
       // (req.session as any).registrationData = { //This will be accessed from /login to authenticate the user
       //   email: email,
@@ -106,5 +102,22 @@ router.post('/register', async (req: Request, res: Response, next) => {
     res.status(500).send({ error: 'Server error, please try again later!' });
   }
 });
+
+router.post('/logout', async (req: Request, res: Response, next) =>{
+  console.log("entered logout");
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: 'Logout failed.', error: err });
+    }
+    // Clear the session and redirect to login page
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Session destruction failed.', error: err });
+      }
+      res.clearCookie('connect.sid'); // Clear the cookie used by the session store
+      res.status(200).json({ success: true, message: 'Logged out successfully!' });
+    });
+  });
+})
 
 export default router;

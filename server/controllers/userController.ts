@@ -1,4 +1,5 @@
 import User from "../models/User";
+import Group from "../models/Group";
 
 interface User{
     id: number,
@@ -8,7 +9,7 @@ interface User{
 }
 
 class Users{
-    static findOrCreate = async(email: string, password: string, name: string): Promise<number>  =>{
+    static createNew = async(email: string, password: string, name: string): Promise<number>  =>{
         try {
             const [user, created] = await User.findOrCreate({ where: { email }, defaults: { password: password, first_name: name } });
             if (created) {
@@ -42,18 +43,34 @@ class Users{
             return null;
         }
     }
-    static getUsername = async (id: number) => {
+
+    static getUserGroups = async(userId: number) =>{
         try {
-            const user = await User.findOne({ where: { id } });
-            if(user) {
-                return user.first_name;
+            console.log("entered getUserGroups>", userId);
+            const userWithGroups = await User.findByPk(userId, {
+              include: [
+                {
+                  model: Group,
+                  through: {
+                    attributes: [], // Exclude UserGroup attributes from the result
+                  },
+                },
+              ],
+            });
+            if (userWithGroups) {
+              console.log(`User is part of the following groups:`, userWithGroups.groups);
+              return userWithGroups.groups; // Returns an array of groups
+            } else {
+              console.log('User not found');
+              return [];
             }
-            return 'User not found!';
-        } catch (error) {
-            console.error('Error fetching user:', error);
-            return 'Error fetching user!';
-        }
+          } catch (error) {
+            console.error('Error fetching user groups:', error);
+            throw error;
+          }
+
     }
 }
+
 
 export default Users;
