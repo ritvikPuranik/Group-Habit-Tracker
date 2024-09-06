@@ -25,7 +25,7 @@ class Users{
         }
     }
 
-    //function to fetch user record by email in sequelize
+    //function to fetch user record by filter in sequelize
     static getUser = async(filter: any): Promise<User | null> => {
         try {
             const user = await User.findOne({ 
@@ -46,7 +46,7 @@ class Users{
 
     static getUserGroups = async(userId: number) =>{
         try {
-            console.log("entered getUserGroups>", userId);
+            // console.log("entered getUserGroups>", userId);
             const userWithGroups = await User.findByPk(userId, {
               include: [
                 {
@@ -58,7 +58,6 @@ class Users{
               ],
             });
             if (userWithGroups) {
-              console.log(`User is part of the following groups:`, userWithGroups.groups);
               return userWithGroups.groups; // Returns an array of groups
             } else {
               console.log('User not found');
@@ -68,6 +67,15 @@ class Users{
             console.error('Error fetching user groups:', error);
             throw error;
           }
+
+    }
+
+    static getAllUsers = async() =>{
+        const users = await User.findAll({
+            attributes:['id', 'first_name']
+        });
+
+        return users;
 
     }
 }

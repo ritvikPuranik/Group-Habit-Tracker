@@ -1,13 +1,19 @@
 import React from 'react';
 import { Dropdown, Menu, Button, Badge } from 'antd';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { UserOutlined } from '@ant-design/icons';
 
 const UserProfile: React.FC = () => {
     const { tokenDetails, setToken } = useAuth() as { tokenDetails: {id: number, email: string}, setToken: (tokenData: {id: number, email: string}) => void };
-    const handleLogout = () => {
-        setToken({id:0, email:''});   
-        sessionStorage.clear();
+    const handleLogout = async() => {
+        setToken({id: 0, email: ''});
+        await fetch(`${process.env.REACT_APP_API_URL}/logout`, {
+            method: 'POST',
+            credentials: 'include', // Include credentials (cookies)
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
     };
 
     const NumberedIcon = ({ number }) => (

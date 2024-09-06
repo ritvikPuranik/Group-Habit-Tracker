@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, Card } from 'antd';
 import { REACT_APP_API_URL, CONVERSATION_ID } from '../setupEnv';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { socket } from 'src/socket';
 
 interface AuthResponse {

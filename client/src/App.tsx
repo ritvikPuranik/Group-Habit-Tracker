@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import LoginRegister from './pages/LoginRegister';
 import Dashboard from './pages/Dashboard';
-import { useAuth } from './AuthContext';
+import { useAuth } from './contexts/AuthContext';
 import { socket } from './socket';
 
 
@@ -67,7 +67,7 @@ function App() {
   }
 
   return (
-    <div className="App" style={{width: '80%' }}>
+    <div className="App" style={{width: '95%' }}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={isAuthenticated || tokenDetails.id ? <Dashboard /> : <Navigate to="/login" />} />

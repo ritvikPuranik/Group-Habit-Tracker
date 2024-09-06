@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -11,7 +11,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
   <AuthProvider>
-    <div style={{display: 'flex', justifyContent: 'center'} }>
+    <div style={{display: 'flex', justifyContent: 'center', height: '100vh'} }>
       <App />
     </div>
   </AuthProvider>

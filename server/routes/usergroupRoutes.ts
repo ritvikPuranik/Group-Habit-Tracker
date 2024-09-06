@@ -27,7 +27,11 @@ router.get('/userGroups', async(req: Request, res: Response) =>{
   
     const userGroups = await Users.getUserGroups(id);
     res.status(200).json(userGroups);
+})
 
+router.get('/registeredUsers', async(req: Request, res: Response) =>{
+  const registeredUsers = await Users.getAllUsers();
+  res.status(200).json(registeredUsers);
 })
 
 

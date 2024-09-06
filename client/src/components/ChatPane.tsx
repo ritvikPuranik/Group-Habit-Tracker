@@ -5,10 +5,13 @@ import { Input, Button, Checkbox, Form } from "antd";
 import {socket} from '../socket';
 
 import { REACT_APP_API_URL, CONVERSATION_ID } from '../setupEnv';
-import { useAuth } from 'src/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useGroupContext } from '../contexts/GroupContext';
+
 
 const ChatPane: React.FC = () => {
-    const { tokenDetails } = useAuth() as { tokenDetails: {id: number} };
+    const { tokenDetails } = useAuth() as any;
+    const {groupDetails, setGroupToken} = useGroupContext() as any;
     const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState("edit");
     const [formData, setFormData] = useState<{ message: string }>({
@@ -24,19 +27,19 @@ const ChatPane: React.FC = () => {
         }));
     }
 
-    //Write a useeffect hook to listen to the chat message event from the server
-    useEffect(() => {
-        socket.on('user-joined', (name: string) => {
-            console.log('User joined>', name, Number(CONVERSATION_ID));
-            setMessages([...messages, { message: `${name} joined the chat`, isSent: false, name: '', conversationId: Number(CONVERSATION_ID)}]);
-        });
+    // //Write a useeffect hook to listen to the chat message event from the server
+    // useEffect(() => {
+    //     socket.on('user-joined', (name: string) => {
+    //         console.log('User joined>', name, Number(CONVERSATION_ID));
+    //         setMessages([...messages, { message: `${name} joined the chat`, isSent: false, name: '', conversationId: Number(CONVERSATION_ID)}]);
+    //     });
 
-        socket.on('chat-message', (msg: {message: string, name: string}) => {
-            // console.log('Message received>', msg);
-            setMessages([...messages, { message: msg.message, isSent: false, name: msg.name, conversationId: Number(CONVERSATION_ID)}]);
-            console.log("messages>", messages);
-        });
-    }, [messages]);
+    //     socket.on('chat-message', (msg: {message: string, name: string}) => {
+    //         // console.log('Message received>', msg);
+    //         setMessages([...messages, { message: msg.message, isSent: false, name: msg.name, conversationId: Number(CONVERSATION_ID)}]);
+    //         console.log("messages>", messages);
+    //     });
+    // }, [messages]);
 
     //write a useeffect hook that loads all chat messages via api call
     useEffect(() => {
@@ -103,64 +106,122 @@ const ChatPane: React.FC = () => {
     };
 
 return (
-    <div style={{ width: '70%', backgroundColor: '#BACD92', minHeight: '500px', maxHeight: '500px', display: 'flex', flexDirection: 'column' }}>
-        <div className='chat-name' style={{ paddingTop: '10px' }}>
-            <h2>Group Chat</h2>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', padding: '10px', flex: 1, overflowY:'auto' }} className='messages-container'>
+    <>
+    <div style={{ width: '80%', display: 'flex', flexDirection: 'column', height: '64vh' }}>
+      {/* Fixed title */}
+      <div className="chat-name" style={{ borderBottom: '1px solid #ccc', flexShrink: 0 }}>
+        <h2 style={{ marginTop: '1rem' }}>{groupDetails.name}</h2>
+      </div>
+
+      {/* Scrollable messages container */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          overflowY: 'auto',
+          padding: '10px',
+        }}
+        className="messages-container"
+      >
         {messages.map((msg, index) => (
-        <div key={index} style={{ display: 'flex', flexDirection: msg.isSent ? 'row-reverse' : 'row', alignItems: 'center', margin: '5px' }}>
+          <div
+            key={index}
+            style={{
+              display: 'flex',
+              flexDirection: msg.isSent ? 'row-reverse' : 'row',
+              alignItems: 'center',
+              margin: '5px',
+            }}
+          >
             {msg.name !== '' && (
-                <div style={{ alignSelf: msg.isSent ? 'flex-end' : 'flex-start', backgroundColor: '#F5EFE6', padding: '8px', borderRadius: '15px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center'}}>
-                        <div style={{marginLeft: '0px' }}>
-                            {!msg.isSent && `${msg.name}: `}
-                        </div>
-                        {/* <div style={{ alignSelf: 'flex-start', backgroundColor: '#F5EFE6', padding: '8px', borderRadius: '15px' }}>
-                            {msg.message}
-                        </div> */}
-                        
-                        {msg.isSent && editing ? (
-                            <Form layout="inline">
-                                <Form.Item>
-                                    <Input value={editedMessage} onChange={(e) => setEditedMessage(e.target.value)} />
-                                </Form.Item>
-                                <Form.Item>
-                                    <Button type="primary" onClick={handleEdit}>
-                                        Save
-                                    </Button>
-                                </Form.Item>
-                            </Form>
-                        ) : 
-                        <div style={{ alignSelf: 'flex-start', backgroundColor: '#F5EFE6', padding: '8px', borderRadius: '15px' }}>
-                            {msg.message}
-                        </div>
-                        }
+              <div
+                style={{
+                  alignSelf: msg.isSent ? 'flex-end' : 'flex-start',
+                  backgroundColor: '#F5EFE6',
+                  padding: '8px',
+                  borderRadius: '15px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div style={{ marginLeft: '0px' }}>{!msg.isSent && `${msg.name}: `}</div>
+
+                  {msg.isSent && editing ? (
+                    <Form layout="inline">
+                      <Form.Item>
+                        <Input value={editedMessage} onChange={(e) => setEditedMessage(e.target.value)} />
+                      </Form.Item>
+                      <Form.Item>
+                        <Button type="primary" onClick={handleEdit}>
+                          Save
+                        </Button>
+                      </Form.Item>
+                    </Form>
+                  ) : (
+                    <div
+                      style={{
+                        alignSelf: 'flex-start',
+                        backgroundColor: '#F5EFE6',
+                        padding: '8px',
+                        borderRadius: '15px',
+                      }}
+                    >
+                      {msg.message}
                     </div>
+                  )}
                 </div>
+              </div>
             )}
             {msg.name === '' && (
-                <div style={{ alignSelf: msg.isSent ? 'flex-end' : 'flex-start', color:'#004a76', padding: '8px', borderRadius: '15px' }}>
-                    {msg.message}
-                </div>
+              <div
+                style={{
+                  alignSelf: msg.isSent ? 'flex-end' : 'flex-start',
+                  color: '#004a76',
+                  padding: '8px',
+                  borderRadius: '15px',
+                }}
+              >
+                {msg.message}
+              </div>
             )}
-            
-        </div>
-    ))}
-        </div>
-        <form style={{ display: 'flex', alignItems: 'center', paddingTop: '10px', paddingBottom: '10px' }} className='input-box' onSubmit={handleSubmit}>
-            <Input
-                style={{ width: '100%', minHeight: '20px', borderRadius: '5px', marginLeft: '5px', cursor: 'pointer', backgroundColor: '#E8DFCA' }}
-                  placeholder="Type your message here"
-                  name="message"
-                  value={formData.message}
-                  onChange={(e) => handleChange(e)}
-                />
-            <button type="submit" style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-                <SendOutlined style={{ fontSize: '24px', color: '#1890ff', margin: '5px' }} />
-            </button>
-        </form>
+          </div>
+        ))}
+      </div>
+
+      {/* Fixed input box */}
+      <form
+        style={{
+            marginBottom: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '10px',
+            borderTop: '1px solid #ccc',
+            flexShrink: 0,
+        }}
+        className="input-box"
+        onSubmit={handleSubmit}
+      >
+        <Input
+          style={{
+            width: '100%',
+            minHeight: '20px',
+            borderRadius: '5px',
+            marginLeft: '5px',
+            cursor: 'pointer',
+            backgroundColor: '#E8DFCA',
+          }}
+          placeholder="Type your message here"
+          name="message"
+          value={formData.message}
+          onChange={(e) => handleChange(e)}
+        />
+        <button type="submit" style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+          <SendOutlined style={{ fontSize: '24px', color: '#1890ff', margin: '5px' }} />
+        </button>
+      </form>
     </div>
+    
+</>
 );
 
 }

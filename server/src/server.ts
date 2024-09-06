@@ -14,7 +14,7 @@ import setAssociations from '../models/associations';
 
 //Routers
 import authRouter from '../routes/authRoutes';
-import groupRouter from '../routes/groupRoutes';
+import usergroupRouter from '../routes/usergroupRoutes';
 import chatRouter from '../routes/chatRoutes';
 
 //Middlewares
@@ -57,8 +57,7 @@ app.use(cors({
 
 //Routers
 app.use('/', authRouter);
-// app.use('/groups', isAuthenticated, groupRouter); //All routes have to be authenticated
-app.use('/groups', groupRouter); //All routes have to be authenticated
+app.use('/usergroups', usergroupRouter); //All routes have to be authenticated
 app.use('/chat', chatRouter); //All routes have to be authenticated
 
 
