@@ -1,12 +1,19 @@
 import User from "../models/User";
 import Group from "../models/Group";
+import UserGroup from "../models/UserGroup";
 
-interface User{
+type User = {
     id: number,
     email: string,
     password: string,
     first_name: string
 }
+type MiniUserFields = {
+    id: number;
+    email: string;
+    firstName: string;
+};
+
 
 class Users{
     static createNew = async(email: string, password: string, name: string): Promise<number>  =>{
@@ -74,9 +81,54 @@ class Users{
         const users = await User.findAll({
             attributes:['id', 'first_name']
         });
-
         return users;
+    }
 
+    static addMembersToGroup = async(users: number[], groupId: number): Promise<MiniUserFields[]> =>{
+        try{
+            const group = await Group.findByPk(groupId);
+
+            if (!group) {
+                console.log(`Group with ID ${groupId} not found.`);
+                return [];
+            }
+
+            const addedMembers: MiniUserFields[] = []; // Array to collect successfully added members
+
+            await Promise.all(
+                users.map(async (userId) => {
+                    const user = await User.findByPk(userId);
+            
+                    if (!user) {
+                        console.log(`Couldn't find user with ids> ${userId}`);
+                        return [];
+                    }
+            
+                    // Check if the user is already a member of the group
+                    const isMember = await user.hasGroup(group);
+            
+                    if (!isMember) {
+                        // Add the user to the group if they are not already a member
+                        await user.addGroup(group, { through: { role: 'member' } });
+                        console.log(`User with ID ${userId} added to the group.`);
+                        addedMembers.push({
+                            id: user.id,
+                            firstName: user.first_name,
+                            email: user.email
+                        });
+            
+                    } else {
+                        console.log(`User with ID ${userId} is already a member of the group.`);
+                    }
+                })
+            );
+            
+            return addedMembers;
+
+        }catch(err){
+            console.log("Couldn't add to UserGroup>", err);
+            return [];
+        }
     }
 }
 

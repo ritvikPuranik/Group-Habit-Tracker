@@ -34,5 +34,14 @@ router.get('/registeredUsers', async(req: Request, res: Response) =>{
   res.status(200).json(registeredUsers);
 })
 
+router.post('/addMembersToGroup', async(req: Request, res: Response) =>{
+  const {users, groupId} = req.body; 
+  const membersAdded = await Users.addMembersToGroup(users, groupId);
+  console.log("membersAdded>", membersAdded);
+  if(membersAdded.length) res.status(201).json({status: true, membersAdded: membersAdded});
+  else res.status(500).json({status: false, message: "Could not add members"});
+
+})
+
 
 export default router;

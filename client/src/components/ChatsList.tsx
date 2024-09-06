@@ -14,16 +14,21 @@ type GroupItem = {
     label: string;
     admin: number;
 }
+
 type RegisteredUser = {
     id: number,
     firstName: string
 }
 
-const ChatsList: React.FC = () => {
+interface Props{
+    registeredUsers: RegisteredUser[],
+    // setRegisteredUsers: React.Dispatch<React.SetStateAction<RegisteredUser[]>>;
+}
+
+const ChatsList: React.FC<Props> = ({registeredUsers}) => {
     const { tokenDetails } = useAuth() as any;
     const {groupDetails, setGroupToken} = useGroupContext() as any;
     const [groups, setGroups] = useState<GroupItem[]>([]);
-    const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
 
     const [open, setOpen] = useState(false);
 
@@ -64,26 +69,9 @@ const ChatsList: React.FC = () => {
                 console.log("error while fetching user groups>", err);
             }
         };
-        const getRegisteredUsers = async () =>{
-            try{
-                const response: any = await fetch(`${REACT_APP_API_URL}/usergroups/registeredUsers`, {
-                    method: 'GET',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if(!response.ok) throw new Error(`Couldn't get registered users. API Failed`);
-                const responseJson = await response.json();
-                const mappedStructure = responseJson.map(item=> ({id: item.id, firstName: item.first_name}))
-                setRegisteredUsers(mappedStructure);
 
-            }catch(err){
-                console.log("Error:", err);
-            }
-        }
         getUserGroups();
-        getRegisteredUsers();
+        
     }, [groupDetails]);
 
     const onClick: MenuProps['onClick'] = (e) => {

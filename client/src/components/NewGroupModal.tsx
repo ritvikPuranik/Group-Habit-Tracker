@@ -12,45 +12,93 @@ interface Props{
     registeredUsers: RegisteredUsers[],
 }
 
-
 type RegisteredUsers = {
     id: number,
     firstName: string
 }
 
+
+
 const NewGroupModal: React.FC<Props> = ({open, setOpen, registeredUsers}) => {
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
   const { tokenDetails } = useAuth() as any;
   const { setGroupToken} = useGroupContext() as any;
   const [form] = Form.useForm();
+
+  const createGroup = async(groupName, creatorId):Promise<number> =>{
+    try{
+        const raw = {
+        name: groupName,
+        creatorId: creatorId
+        }
+    
+    console.log("req body going>", raw);
+    const response: any = await fetch(`${REACT_APP_API_URL}/usergroups/createGroup`, {
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify(raw),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!response.ok) throw new Error('Cannot create group!');
+
+    const responseJson = await response.json();
+    setGroupToken({
+        id: parseInt(responseJson.message),
+        name: groupName,
+        admin: creatorId
+    });
+    
+    return responseJson.message;
+    }catch(err){
+        console.log("Error while creating group>", err);
+        
+        setConfirmLoading(false);
+        messageApi.open({
+            type: 'error',
+            content: 'Error while creating group',
+        });
+        return 0;
+    }
+  }
+
+  const addMembersToGroup = async(users, groupId) =>{
+    try{
+        console.log("users>", users);
+        const response: any = await fetch(`${REACT_APP_API_URL}/usergroups/addMembersToGroup`, {
+            method: 'POST',
+            credentials: 'include',
+            body: JSON.stringify({
+                users,
+                groupId
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Cannot add members to group!');
+
+    }catch(err){
+        console.log("Error while adding members>", err);
+
+        setConfirmLoading(false);
+        messageApi.open({
+            type: 'error',
+            content: 'Error while adding members',
+        });
+    }
+
+  }
 
   const handleOk = async () => {
     try {
         setConfirmLoading(true);
         const values = await form.validateFields(); // Validate the form fields
         console.log('Form values:', values);
-        
-        const raw = {
-            name: values.groupName,
-            creatorId: tokenDetails.id
-        }
-        console.log("req body going>", raw);
-        const response: any = await fetch(`${REACT_APP_API_URL}/usergroups/createGroup`, {
-            method: 'POST',
-            credentials: 'include',
-            body: JSON.stringify(raw),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        if (!response.ok) throw new Error('Cannot create group!');
-
-        const responseJson = await response.json();
-        setGroupToken({
-            id: parseInt(responseJson.message),
-            name: values.groupName,
-            admin: tokenDetails.id
-        })
+        const groupId = await createGroup(values.groupName, tokenDetails.id);
+        await addMembersToGroup(values.members, groupId);
             
         setTimeout(() => {
             setConfirmLoading(false);

@@ -1,19 +1,30 @@
 
 import React, {useEffect, useState} from 'react';
-import { SendOutlined, EditOutlined } from '@ant-design/icons';
-import { Input, Button, Checkbox, Form } from "antd";
+import { SendOutlined, MoreOutlined } from '@ant-design/icons';
+import { Input, Button, Checkbox, Form, Dropdown, Menu } from "antd";
 import {socket} from '../socket';
 
 import { REACT_APP_API_URL, CONVERSATION_ID } from '../setupEnv';
 import { useAuth } from '../contexts/AuthContext';
 import { useGroupContext } from '../contexts/GroupContext';
+import ManageMembersModal from './ManageMembersModal';
 
 
-const ChatPane: React.FC = () => {
+type RegisteredUser = {
+    id: number,
+    firstName: string
+}
+interface Props{
+    registeredUsers: RegisteredUser[],
+    // setRegisteredUsers: React.Dispatch<React.SetStateAction<RegisteredUser[]>>;
+}
+
+const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     const { tokenDetails } = useAuth() as any;
     const {groupDetails, setGroupToken} = useGroupContext() as any;
     const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState("edit");
+    const [isModalVisible, setIsModalVisible] = useState(false); //Manage Members modal
     const [formData, setFormData] = useState<{ message: string }>({
         message: ""
     });
@@ -41,24 +52,24 @@ const ChatPane: React.FC = () => {
     //     });
     // }, [messages]);
 
-    //write a useeffect hook that loads all chat messages via api call
-    useEffect(() => {
-        const fetchMessages = async() => {
-            const token = JSON.parse(sessionStorage.getItem('token') || "{}");
-            console.log("Token>", CONVERSATION_ID);
+    // //write a useeffect hook that loads all chat messages via api call
+    // useEffect(() => {
+    //     const fetchMessages = async() => {
+    //         const token = JSON.parse(sessionStorage.getItem('token') || "{}");
+    //         console.log("Token>", CONVERSATION_ID);
 
-            const response = await fetch(`${REACT_APP_API_URL}/getChatMessages?conversationId=${CONVERSATION_ID}&userId=${token.id}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            const data = await response.json();
-            console.log("Chat messages>", data);
-            setMessages(data.messages);
-        }
-        fetchMessages();
-    }, []);
+    //         const response = await fetch(`${REACT_APP_API_URL}/getChatMessages?conversationId=${CONVERSATION_ID}&userId=${token.id}`, {
+    //             method: 'GET',
+    //             headers: {
+    //                 'Content-Type': 'application/json'
+    //             }
+    //         });
+    //         const data = await response.json();
+    //         console.log("Chat messages>", data);
+    //         setMessages(data.messages);
+    //     }
+    //     fetchMessages();
+    // }, []);
 
     const handleSubmit = async(e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -105,13 +116,40 @@ const ChatPane: React.FC = () => {
         // onEdit(editedMessage);
     };
 
+    const handleManageMembersClick = () => {
+        setIsModalVisible(true);
+    };
+
+    const handleCloseModal = () => {
+    setIsModalVisible(false);
+    };
+
+    const menu = (
+        <Menu>
+          <Menu.Item key="view-members" onClick={handleManageMembersClick}>
+            <p style={{margin:0}}>Manage Members</p>
+          </Menu.Item>
+        </Menu>
+    );
+
 return (
     <>
+    <ManageMembersModal
+        groupDetails={groupDetails}
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        registeredUsers={registeredUsers}
+    />
+
     <div style={{ width: '80%', display: 'flex', flexDirection: 'column', height: '64vh' }}>
       {/* Fixed title */}
-      <div className="chat-name" style={{ borderBottom: '1px solid #ccc', flexShrink: 0 }}>
+      <div className="chat-name" style={{ borderBottom: '0.8px solid #ccc', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h2 style={{ marginTop: '1rem' }}>{groupDetails.name}</h2>
-      </div>
+        
+        <Dropdown overlay={menu} trigger={['click']}>
+            <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+        </div>
 
       {/* Scrollable messages container */}
       <div
@@ -195,7 +233,7 @@ return (
             display: 'flex',
             alignItems: 'center',
             padding: '10px',
-            borderTop: '1px solid #ccc',
+            borderTop: '0.8px solid #ccc',
             flexShrink: 0,
         }}
         className="input-box"

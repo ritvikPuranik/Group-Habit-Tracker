@@ -27,7 +27,7 @@ const UserProfile: React.FC = () => {
             <Menu.Item key="id" disabled>
                 Email: {tokenDetails.email}
             </Menu.Item>
-            <Menu.Item key="logout" onClick={handleLogout}>
+            <Menu.Item key="logout" onClick={handleLogout} style={{color: 'red'}}>
                 Logout
             </Menu.Item>
         </Menu>
