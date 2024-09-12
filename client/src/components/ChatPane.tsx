@@ -4,7 +4,7 @@ import { SendOutlined, MoreOutlined } from '@ant-design/icons';
 import { Input, Button, Checkbox, Form, Dropdown, Menu } from "antd";
 import {socket} from '../socket';
 
-import { REACT_APP_API_URL, CONVERSATION_ID } from '../setupEnv';
+import { REACT_APP_API_URL } from '../setupEnv';
 import { useAuth } from '../contexts/AuthContext';
 import { useGroupContext } from '../contexts/GroupContext';
 import ManageMembersModal from './ManageMembersModal';
@@ -14,6 +14,14 @@ type RegisteredUser = {
     id: number,
     firstName: string
 }
+
+type Message = {
+  message: string,
+  senderId: number,
+  senderName: string,
+  groupId: number,
+  type: string
+}
 interface Props{
     registeredUsers: RegisteredUser[],
     // setRegisteredUsers: React.Dispatch<React.SetStateAction<RegisteredUser[]>>;
@@ -21,14 +29,14 @@ interface Props{
 
 const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     const { tokenDetails } = useAuth() as any;
-    const {groupDetails, setGroupToken} = useGroupContext() as any;
+    const {groupDetails} = useGroupContext() as any;
     const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState("edit");
     const [isModalVisible, setIsModalVisible] = useState(false); //Manage Members modal
-    const [formData, setFormData] = useState<{ message: string }>({
+    const [formData, setFormData] = useState({
         message: ""
     });
-    const [messages, setMessages] = useState<{ message: string, isSent: boolean, name: string, conversationId: number }[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = e.target;
@@ -38,65 +46,55 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
         }));
     }
 
-    // //Write a useeffect hook to listen to the chat message event from the server
-    // useEffect(() => {
-    //     socket.on('user-joined', (name: string) => {
-    //         console.log('User joined>', name, Number(CONVERSATION_ID));
-    //         setMessages([...messages, { message: `${name} joined the chat`, isSent: false, name: '', conversationId: Number(CONVERSATION_ID)}]);
-    //     });
+    //Write a useeffect hook to listen to the chat message event from the server
+    useEffect(() => {
+        // socket.on('user-joined', (name: string) => {
+        //     console.log('User joined>', name, Number(CONVERSATION_ID));
+        //     setMessages([...messages, { message: `${name} joined the chat`, isSent: false, name: '', conversationId: Number(CONVERSATION_ID)}]);
+        // });
 
-    //     socket.on('chat-message', (msg: {message: string, name: string}) => {
-    //         // console.log('Message received>', msg);
-    //         setMessages([...messages, { message: msg.message, isSent: false, name: msg.name, conversationId: Number(CONVERSATION_ID)}]);
-    //         console.log("messages>", messages);
-    //     });
-    // }, [messages]);
+        const handleNewChatMessage = (msg: Message) => {
+          const { groupId, message, type, senderId, senderName } = msg;
+          setMessages((prevMessages) => [
+              ...prevMessages,
+              { message, senderName, groupId: Number(groupId), senderId, type },
+          ]);
+        };
 
-    // //write a useeffect hook that loads all chat messages via api call
-    // useEffect(() => {
-    //     const fetchMessages = async() => {
-    //         const token = JSON.parse(sessionStorage.getItem('token') || "{}");
-    //         console.log("Token>", CONVERSATION_ID);
+        socket.on('chat-message', handleNewChatMessage);
 
-    //         const response = await fetch(`${REACT_APP_API_URL}/getChatMessages?conversationId=${CONVERSATION_ID}&userId=${token.id}`, {
-    //             method: 'GET',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             }
-    //         });
-    //         const data = await response.json();
-    //         console.log("Chat messages>", data);
-    //         setMessages(data.messages);
-    //     }
-    //     fetchMessages();
-    // }, []);
+        return () => {
+          socket.off('chat-message', handleNewChatMessage);
+        };
+    }, []);
+
+    // useeffect hook that loads all chat messages via api call
+    useEffect(() => {
+        const fetchMessages = async() => {
+            const response = await fetch(`${REACT_APP_API_URL}/chat/getChatMessages?groupId=${groupDetails.id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await response.json();
+            console.log("Chat messages>", data);
+            setMessages(data.messages);
+        }
+        fetchMessages();
+    }, [groupDetails]);//The conversations should be loaded whenever user changes the group
 
     const handleSubmit = async(e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         //get the message from the input
         const message = formData.message;
-        //make an api call to get username by passing senderId
-        const response = await fetch(`${REACT_APP_API_URL}/getUsername?id=${tokenDetails.id}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        const data = await response.json();
-        const name = data.name;
-         
 
         // console.log('Message>', message);
-        const messageSignature = { message: message, isSent: true, name: name, conversationId: Number(CONVERSATION_ID)};//hardcoded conversationId for now
-        //send the message to the server
+        const messageSignature = { message: message, senderName: tokenDetails.firstName, senderId: tokenDetails.id, groupId: groupDetails.id, type: 'user'};
+        console.log("messageSignature>>", messageSignature);
         if (message) {
-            socket.emit('new-chat-message', {...messageSignature, senderId: tokenDetails.id});
+            socket.emit('new-chat-message', messageSignature);
         }
-
-        //append the message to the list of messages
-        setMessages([...messages, messageSignature]);
-        console.log("chat messages", messages);
-
 
         //clear the input
         setFormData((prev) => ({
@@ -167,24 +165,24 @@ return (
             key={index}
             style={{
               display: 'flex',
-              flexDirection: msg.isSent ? 'row-reverse' : 'row',
+              flexDirection: (tokenDetails.id === msg.senderId) ? 'row-reverse' : 'row',
               alignItems: 'center',
               margin: '5px',
             }}
           >
-            {msg.name !== '' && (
+            {tokenDetails.firstName !== '' && (
               <div
                 style={{
-                  alignSelf: msg.isSent ? 'flex-end' : 'flex-start',
+                  alignSelf: (tokenDetails.id === msg.senderId) ? 'flex-end' : 'flex-start',
                   backgroundColor: '#F5EFE6',
                   padding: '8px',
                   borderRadius: '15px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ marginLeft: '0px' }}>{!msg.isSent && `${msg.name}: `}</div>
+                  <div style={{ marginLeft: '0px' }}>{!(tokenDetails.id === msg.senderId) && `${msg.senderName}: `}</div>
 
-                  {msg.isSent && editing ? (
+                  {(tokenDetails.id === msg.senderId) && editing ? (
                     <Form layout="inline">
                       <Form.Item>
                         <Input value={editedMessage} onChange={(e) => setEditedMessage(e.target.value)} />
@@ -210,10 +208,10 @@ return (
                 </div>
               </div>
             )}
-            {msg.name === '' && (
+            {msg.senderName === '' && (
               <div
                 style={{
-                  alignSelf: msg.isSent ? 'flex-end' : 'flex-start',
+                  alignSelf: (tokenDetails.id === msg.senderId) ? 'flex-end' : 'flex-start',
                   color: '#004a76',
                   padding: '8px',
                   borderRadius: '15px',

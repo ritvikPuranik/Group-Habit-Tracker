@@ -1,24 +1,48 @@
 import Message from '../models/Message';
+import User from '../models/User';
 
+type MessageData = {
+    message: string,
+    senderId: number, 
+    senderName: string,
+    groupId: number,
+    type: string
+}
 class Messages {
-    static insertMessage = async(message: string, senderId: number, conversationId: number, type: string): Promise<void> => {
+    static userIdMapping: { [key: number]: string } = {};
+
+    static insertMessage = async(data: MessageData): Promise<void> => {
         try {
-            await Message.create({ message, sender_id: senderId, conversation_id: conversationId, message_type: type});
+            const {message, senderId, groupId, type} = data;
+            await Message.create({ message, sender_id: senderId, group_id: groupId, message_type: type});
         } catch (error) {
             console.error('Error inserting message:', error);
         }
     }
     
     
-    static getChatMessages = async (userId: number, conversationId: number) => {
+    static getChatMessages = async (groupId: number): Promise<MessageData[]> => {
         try {
-            const messages = await Message.findAll({ where: { conversation_id: conversationId } });
-            const allMessages = messages.map(async (message: { message: string; sender_id: number; message_type: string }) => {
+            const messages = await Message.findAll({ where: { group_id: groupId }, raw: true });
+            
+            const allMessages = messages.map(async (message: { id: number, message: string; sender_id: number; message_type: string, group_id: number }) => {
+                let userName = '';
+                if(this.userIdMapping[message.sender_id]) userName = this.userIdMapping[message.sender_id];
+                else{
+                    const user = await User.findByPk(message.sender_id, { attributes: ['first_name'] });
+                    if(user){
+                        userName = user.first_name;
+                        this.userIdMapping[message.sender_id] = userName;
+                    }
+
+                }
                 return {
                     message: message.message,
-                    isSent: message.sender_id === userId,
-                    // name: message.message_type=== 'system' ? '' : await this.getUsername(message.sender_id),//Check if system message and replace with ''. 
-                    conversationId: conversationId
+                    id: message.id,
+                    senderId: message.sender_id,
+                    senderName: userName,
+                    groupId: message.group_id,
+                    messageType: message.message_type
                 };
             });
             return Promise.all(allMessages);

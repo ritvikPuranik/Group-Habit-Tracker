@@ -2,8 +2,10 @@ import React from 'react';
 import { Dropdown, Menu, Button, Badge } from 'antd';
 import { useAuth } from '../contexts/AuthContext';
 import { UserOutlined } from '@ant-design/icons';
+import { useNavigate } from "react-router-dom";
 
 const UserProfile: React.FC = () => {
+    const navigate = useNavigate();
     const { tokenDetails, setToken } = useAuth() as { tokenDetails: {id: number, email: string}, setToken: (tokenData: {id: number, email: string}) => void };
     const handleLogout = async() => {
         setToken({id: 0, email: ''});
@@ -14,6 +16,7 @@ const UserProfile: React.FC = () => {
               'Content-Type': 'application/json',
             },
           });
+        navigate('/');
     };
 
     const NumberedIcon = ({ number }) => (

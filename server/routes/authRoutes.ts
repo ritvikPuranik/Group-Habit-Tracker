@@ -14,7 +14,6 @@ passport.use(new LocalStrategy(
     try {
       console.log("Entered LocalStrategy>", email, password);
       const user = await User.getUser({ email: email });
-      console.log("User found>");
       if (!user || !user.id) {
         return done(null, false, { message: `User doesn't exist` });
       }
@@ -31,20 +30,16 @@ passport.use(new LocalStrategy(
 // Serialize and deserialize user instances to and from the session
 passport.serializeUser(function(user: any, done) {
   process.nextTick(function() {
-    console.log("Entered serialize>", user);
     return done(null, {id: user.id, email: user.email, firstName: user.first_name});
   });
 });
 
 passport.deserializeUser(async ({id}, done: (err: any, user?: any) => void) => {
-  console.log("entered deserialze>", id);
   process.nextTick(async () => {
     try{
       const user: any = await User.getUser({id: id});
-      console.log("user found>", user);
-      const {password, ...userWithoutPassword} = user;
-      console.log("user without pwd>", userWithoutPassword);
-      return done(null, userWithoutPassword);
+      const {password, first_name, ...remainingDetails} = user;
+      return done(null, {...remainingDetails, firstName: first_name});
     }catch(err){
       done(err);
     }

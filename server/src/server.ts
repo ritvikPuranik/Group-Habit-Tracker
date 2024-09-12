@@ -17,7 +17,7 @@ import authRouter from '../routes/authRoutes';
 import usergroupRouter from '../routes/usergroupRoutes';
 import chatRouter from '../routes/chatRoutes';
 
-//Middlewares
+//Middlewares import
 import isAuthenticated from '../middlewares/isAuthenticated';
 
 //Handlers
@@ -57,8 +57,8 @@ app.use(cors({
 
 //Routers
 app.use('/', authRouter);
-app.use('/usergroups', usergroupRouter); //All routes have to be authenticated
-app.use('/chat', chatRouter); //All routes have to be authenticated
+app.use('/usergroups', isAuthenticated, usergroupRouter); //All routes have to be authenticated
+app.use('/chat', isAuthenticated, chatRouter); //All routes have to be authenticated
 
 
 // Initialize a new instance of socket.io by passing the HTTP server object
@@ -73,9 +73,7 @@ socketHandler(io);
 app.get('/', isAuthenticated, (req, res) => {
     console.log("request user>", req.user);
     res.status(200).json({ success: true, message: 'Welcome to your dashboard!', user: req.user });
-
 });
-
 
 
 //initialize the server

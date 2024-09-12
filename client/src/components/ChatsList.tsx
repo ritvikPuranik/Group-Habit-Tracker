@@ -7,6 +7,7 @@ import { useAuth } from 'src/contexts/AuthContext';
 import { useGroupContext } from '../contexts/GroupContext';
 
 import NewGroupModal from './NewGroupModal';
+import { socket } from 'src/socket';
 
 
 type GroupItem = {
@@ -64,6 +65,7 @@ const ChatsList: React.FC<Props> = ({registeredUsers}) => {
                         name: label,
                         admin: admin
                     });
+                    socket.emit('join-group', {...tokenDetails, roomId: parseInt(key)});
                 }
             } catch (err) {
                 console.log("error while fetching user groups>", err);
@@ -86,7 +88,8 @@ const ChatsList: React.FC<Props> = ({registeredUsers}) => {
             name: label,
             admin: admin
         })
-        
+        console.log("tokendetails>", tokenDetails);
+        socket.emit('join-group', {...tokenDetails, groupId: parseInt(key)});
     };
 
     return (

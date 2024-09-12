@@ -105,7 +105,7 @@ const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ groupDetails, v
         //     firstName: 'ithihas',
         //     email: 'ithihas@gmail.com'
         // }
-console.log("added new members>", newMembers);
+        console.log("added new members>", newMembers);
         setMembers([...members, ...newMembers]);
         message.success('Member added successfully');
     } catch (error) {
