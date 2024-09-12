@@ -1,5 +1,6 @@
 
 import React, {useEffect, useState} from 'react';
+import { useNavigate } from "react-router-dom";
 import { SendOutlined, MoreOutlined } from '@ant-design/icons';
 import { Input, Button, Checkbox, Form, Dropdown, Menu } from "antd";
 import {socket} from '../socket';
@@ -28,6 +29,7 @@ interface Props{
 }
 
 const ChatPane: React.FC<Props> = ({registeredUsers}) => {
+    const navigate = useNavigate();
     const { tokenDetails } = useAuth() as any;
     const {groupDetails} = useGroupContext() as any;
     const [editing, setEditing] = useState(false);
@@ -71,12 +73,19 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     // useeffect hook that loads all chat messages via api call
     useEffect(() => {
         const fetchMessages = async() => {
+          console.log("fetching details with group id>", groupDetails.id);
             const response = await fetch(`${REACT_APP_API_URL}/chat/getChatMessages?groupId=${groupDetails.id}`, {
                 method: 'GET',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
+            if(!response.ok){
+              alert("Unauthorized! Please login again");
+              navigate('/');
+
+            } 
             const data = await response.json();
             console.log("Chat messages>", data);
             setMessages(data.messages);
@@ -160,7 +169,7 @@ return (
         }}
         className="messages-container"
       >
-        {messages.map((msg, index) => (
+        {messages && messages.map((msg, index) => (
           <div
             key={index}
             style={{

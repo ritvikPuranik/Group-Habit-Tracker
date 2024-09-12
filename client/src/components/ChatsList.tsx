@@ -65,7 +65,8 @@ const ChatsList: React.FC<Props> = ({registeredUsers}) => {
                         name: label,
                         admin: admin
                     });
-                    socket.emit('join-group', {...tokenDetails, roomId: parseInt(key)});
+                    console.log("tokendetails>", tokenDetails);
+                    socket.emit('join-group', {...tokenDetails, groupId: parseInt(key)});
                 }
             } catch (err) {
                 console.log("error while fetching user groups>", err);
