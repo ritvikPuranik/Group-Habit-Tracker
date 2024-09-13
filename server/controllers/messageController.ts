@@ -11,12 +11,14 @@ type MessageData = {
 class Messages {
     static userIdMapping: { [key: number]: string } = {};
 
-    static insertMessage = async(data: MessageData): Promise<void> => {
+    static insertMessage = async(data: MessageData): Promise<number> => {
         try {
             const {message, senderId, groupId, type} = data;
-            await Message.create({ message, sender_id: senderId, group_id: groupId, message_type: type});
+            let messageId = await Message.create({ message, sender_id: senderId, group_id: groupId, message_type: type});
+            return messageId;
         } catch (error) {
             console.error('Error inserting message:', error);
+            return 0; //couldn't insert message
         }
     }
     

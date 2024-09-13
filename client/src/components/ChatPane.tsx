@@ -1,8 +1,8 @@
 
 import React, {useEffect, useState} from 'react';
 import { useNavigate } from "react-router-dom";
-import { SendOutlined, MoreOutlined } from '@ant-design/icons';
-import { Input, Button, Checkbox, Form, Dropdown, Menu } from "antd";
+import { SendOutlined, MoreOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Input, Button, Checkbox, Form, Dropdown, Menu, Card, Tooltip } from "antd";
 import {socket} from '../socket';
 
 import { REACT_APP_API_URL } from '../setupEnv';
@@ -17,6 +17,7 @@ type RegisteredUser = {
 }
 
 type Message = {
+  id: number,
   message: string,
   senderId: number,
   senderName: string,
@@ -33,12 +34,13 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     const { tokenDetails } = useAuth() as any;
     const {groupDetails} = useGroupContext() as any;
     const [editing, setEditing] = useState(false);
-    const [editedMessage, setEditedMessage] = useState("edit");
+    const [editedMessage, setEditedMessage] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false); //Manage Members modal
-    const [formData, setFormData] = useState({
-        message: ""
-    });
+    const [formData, setFormData] = useState({message: ""});
     const [messages, setMessages] = useState<Message[]>([]);
+    const [hoveredMessageId, setHoveredMessageId] = useState<number | null>(null);
+    const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+    let prevMessageSender = '';
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { value } = e.target;
@@ -56,10 +58,10 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
         // });
 
         const handleNewChatMessage = (msg: Message) => {
-          const { groupId, message, type, senderId, senderName } = msg;
+          const { groupId, message, type, senderId, senderName, id } = msg;
           setMessages((prevMessages) => [
               ...prevMessages,
-              { message, senderName, groupId: Number(groupId), senderId, type },
+              { id, message, senderName, groupId: Number(groupId), senderId, type },
           ]);
         };
 
@@ -113,8 +115,8 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
 
     }
 
-    const handleEdit = () => {
-        console.log("entered edit mode");
+    const handleEdit = (id) => {
+        console.log("entered edit mode>>", id);
         setEditing(true);
     };
 
@@ -139,24 +141,42 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
         </Menu>
     );
 
+    const isSameSender = (curSender: string): boolean =>{
+      if(curSender === prevMessageSender){
+        prevMessageSender = '';
+        return false;
+      } 
+      prevMessageSender = curSender;
+      return true;
+    }
+
 return (
-    <>
+  <>
     <ManageMembersModal
-        groupDetails={groupDetails}
-        visible={isModalVisible}
-        onClose={handleCloseModal}
-        registeredUsers={registeredUsers}
+      groupDetails={groupDetails}
+      visible={isModalVisible}
+      onClose={handleCloseModal}
+      registeredUsers={registeredUsers}
     />
 
     <div style={{ width: '80%', display: 'flex', flexDirection: 'column', height: '64vh' }}>
       {/* Fixed title */}
-      <div className="chat-name" style={{ borderBottom: '0.8px solid #ccc', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div
+        className="chat-name"
+        style={{
+          borderBottom: '0.8px solid #ccc',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
         <h2 style={{ marginTop: '1rem' }}>{groupDetails.name}</h2>
-        
+
         <Dropdown overlay={menu} trigger={['click']}>
-            <Button type="text" icon={<MoreOutlined />} />
+          <Button type="text" icon={<MoreOutlined />} />
         </Dropdown>
-        </div>
+      </div>
 
       {/* Scrollable messages container */}
       <div
@@ -169,79 +189,130 @@ return (
         }}
         className="messages-container"
       >
-        {messages && messages.map((msg, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              flexDirection: (tokenDetails.id === msg.senderId) ? 'row-reverse' : 'row',
-              alignItems: 'center',
-              margin: '5px',
-            }}
-          >
-            {tokenDetails.firstName !== '' && (
+        {messages &&
+          messages.map((msg, index) => (
+            <div
+              key={index}
+              style={{
+                display: 'flex',
+                flexDirection: tokenDetails.id === msg.senderId ? 'row-reverse' : 'row',
+                margin: isSameSender(msg.senderName) ? '0px' : '5px',
+                marginLeft: isSameSender(msg.senderName) ? '5px' : '0px',
+              }}
+              onMouseEnter={() => setHoveredMessageId(msg.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
+            >
               <div
                 style={{
-                  alignSelf: (tokenDetails.id === msg.senderId) ? 'flex-end' : 'flex-start',
-                  backgroundColor: '#F5EFE6',
-                  padding: '8px',
-                  borderRadius: '15px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: tokenDetails.id === msg.senderId ? 'flex-end' : 'flex-start',
+                  maxWidth: '60%',
+                  position: 'relative',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div style={{ marginLeft: '0px' }}>{!(tokenDetails.id === msg.senderId) && `${msg.senderName}: `}</div>
+                {/* Display sender's name above the message bubble */}
+                {isSameSender(msg.senderName) && !(tokenDetails.id === msg.senderId) && (
+                  <div
+                    style={{
+                      marginBottom: '4px',
+                      color: '#bdbbbb',
+                    }}
+                  >
+                    {msg.senderName}
+                  </div>
+                )}
 
-                  {(tokenDetails.id === msg.senderId) && editing ? (
+                <Card
+                  style={{
+                    alignSelf: tokenDetails.id === msg.senderId ? 'flex-end' : 'flex-start',
+                    backgroundColor: tokenDetails.id === msg.senderId ? '#E6F7FF' : '#F5EFE6',
+                    borderRadius: '15px',
+                    wordBreak: 'break-word',
+                    borderTopRightRadius: tokenDetails.id === msg.senderId ? '0px' : '15px',
+                    borderTopLeftRadius: tokenDetails.id === msg.senderId ? '15px' : '0px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+                    position: 'relative',
+                  }}
+                  bodyStyle={{
+                    padding: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  {/* Message content */}
+                  {editingMessageId === msg.id ? (
                     <Form layout="inline">
                       <Form.Item>
-                        <Input value={editedMessage} onChange={(e) => setEditedMessage(e.target.value)} />
+                        <Input
+                          value={editedMessage}
+                          onChange={(e) => setEditedMessage(e.target.value)}
+                          defaultValue={msg.message}
+                        />
                       </Form.Item>
-                      <Form.Item>
-                        <Button type="primary" onClick={handleEdit}>
-                          Save
-                        </Button>
+                      <Form.Item style={{ display: 'flex' }}>
+                        {/* Save button with tick mark */}
+                        <Button
+                          type="primary"
+                          size='small'
+                          shape="circle"
+                          icon={<CheckOutlined />}
+                          onClick={() => {
+                            handleEdit(msg.id);
+                            setEditingMessageId(null); // Close the editing mode after saving
+                          }}
+                          style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', marginRight: '3px' }}
+                        />
+
+                        {/* Cancel button with cross mark */}
+                        <Button
+                          type="default"
+                          size='small'
+                          shape="circle"
+                          icon={<CloseOutlined />}
+                          onClick={() => setEditingMessageId(null)} // Cancel editing
+                          style={{ color: '#ff4d4f', borderColor: '#ff4d4f', marginLeft: '3px' }}
+                        />
                       </Form.Item>
+
                     </Form>
                   ) : (
-                    <div
-                      style={{
-                        alignSelf: 'flex-start',
-                        backgroundColor: '#F5EFE6',
-                        padding: '8px',
-                        borderRadius: '15px',
-                      }}
-                    >
-                      {msg.message}
-                    </div>
+                    <div>{msg.message}</div>
                   )}
-                </div>
+
+                  {/* Edit Icon for own messages */}
+                  { tokenDetails.id === msg.senderId && hoveredMessageId === msg.id && (
+                    <Tooltip title="Edit Message">
+                      <EditOutlined
+                        style={{
+                          position: 'relative',
+                          top: 0,
+                          cursor: 'pointer',
+                          color: '#888',
+                        }}
+                        onClick={() => {
+                          setHoveredMessageId(null); 
+                          setEditingMessageId(msg.id);
+                          setEditedMessage(msg.message);
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Card>
               </div>
-            )}
-            {msg.senderName === '' && (
-              <div
-                style={{
-                  alignSelf: (tokenDetails.id === msg.senderId) ? 'flex-end' : 'flex-start',
-                  color: '#004a76',
-                  padding: '8px',
-                  borderRadius: '15px',
-                }}
-              >
-                {msg.message}
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
       </div>
 
       {/* Fixed input box */}
       <form
         style={{
-            marginBottom: '0.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '10px',
-            borderTop: '0.8px solid #ccc',
-            flexShrink: 0,
+          marginBottom: '0.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '10px',
+          borderTop: '0.8px solid #ccc',
+          flexShrink: 0,
         }}
         className="input-box"
         onSubmit={handleSubmit}
@@ -265,8 +336,7 @@ return (
         </button>
       </form>
     </div>
-    
-</>
+  </>
 );
 
 }

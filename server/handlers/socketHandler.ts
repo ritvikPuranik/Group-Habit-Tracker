@@ -36,15 +36,15 @@ const socketHandler = (io: Server) => {
       console.log(`${name} joined chatroom ${groupId}`);
     });
 
-    socket.on('new-chat-message', (data: ChatMessageData) => {
+    socket.on('new-chat-message', async(data: ChatMessageData) => {
       const { message, senderName, groupId, senderId } = data;
       console.log("emit a chat>>", message);
       try{
         // Store the message in the Message table
-        Messages.insertMessage(data);
+        const id = await Messages.insertMessage(data);
         
         // Broadcast the message to all users in the group, excluding the sender
-        io.to(`group-${groupId}`).emit('chat-message', { message, senderName, senderId });
+        io.to(`group-${groupId}`).emit('chat-message', { message, senderName, senderId, id: id });
         console.log(`Message broadcasted to -> group-${groupId}`);
       }catch(err){
         console.log("error while broadcasting to group>>", err);

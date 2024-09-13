@@ -71,7 +71,7 @@ io.listen(server);
 socketHandler(io);
 
 app.get('/', isAuthenticated, (req, res) => {
-    console.log("request user>", req.user);
+    // console.log("request user>", req.user);
     res.status(200).json({ success: true, message: 'Welcome to your dashboard!', user: req.user });
 });
 

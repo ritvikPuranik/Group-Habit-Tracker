@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 
 // Middleware to check if the user is authenticated
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-console.log("entered isauthenticated>", req.isAuthenticated());
+// console.log("entered isauthenticated>", req.isAuthenticated());
   if (req.isAuthenticated()) {
     return next(); // Proceed to the next middleware or route handler
   }
