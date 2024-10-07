@@ -16,12 +16,15 @@ type RegisteredUser = {
     firstName: string
 }
 
-type Message = {
+interface Message {
   id: number,
   message: string,
   senderId: number,
   senderName: string,
   groupId: number,
+  edited: boolean
+}
+interface NewMessage extends Message{
   type: string
 }
 interface Props{
@@ -33,7 +36,6 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     const navigate = useNavigate();
     const { tokenDetails } = useAuth() as any;
     const {groupDetails} = useGroupContext() as any;
-    const [editing, setEditing] = useState(false);
     const [editedMessage, setEditedMessage] = useState("");
     const [isModalVisible, setIsModalVisible] = useState(false); //Manage Members modal
     const [formData, setFormData] = useState({message: ""});
@@ -57,15 +59,25 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
         //     setMessages([...messages, { message: `${name} joined the chat`, isSent: false, name: '', conversationId: Number(CONVERSATION_ID)}]);
         // });
 
-        const handleNewChatMessage = (msg: Message) => {
+        const handleNewChatMessage = (msg: NewMessage) => {
           const { groupId, message, type, senderId, senderName, id } = msg;
           setMessages((prevMessages) => [
               ...prevMessages,
-              { id, message, senderName, groupId: Number(groupId), senderId, type },
+              { id, message, senderName, senderId, type, groupId: Number(groupId), edited: false},
           ]);
         };
 
-        socket.on('chat-message', handleNewChatMessage);
+        const handleEditedMessage = (msg: Message) => {
+          const { id, message } = msg;
+          setMessages((prevMessages) => 
+            prevMessages.map((msg) => 
+              msg.id === id ? { ...msg, message, edited: true } : msg
+            )
+          );
+        };
+
+        socket.on('chat-message', handleNewChatMessage);//This channel is emitted to on new message
+        socket.on('edit-chat-message', handleEditedMessage);//This channel is emitted to on edit message
 
         return () => {
           socket.off('chat-message', handleNewChatMessage);
@@ -101,7 +113,7 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
         const message = formData.message;
 
         // console.log('Message>', message);
-        const messageSignature = { message: message, senderName: tokenDetails.firstName, senderId: tokenDetails.id, groupId: groupDetails.id, type: 'user'};
+        const messageSignature = { message, senderName: tokenDetails.firstName, senderId: tokenDetails.id, groupId: groupDetails.id, type: 'user'};
         console.log("messageSignature>>", messageSignature);
         if (message) {
             socket.emit('new-chat-message', messageSignature);
@@ -116,14 +128,16 @@ const ChatPane: React.FC<Props> = ({registeredUsers}) => {
     }
 
     const handleEdit = (id) => {
-        console.log("entered edit mode>>", id);
-        setEditing(true);
+        console.log("entered edit mode>>", id, editedMessage);
+        const messageSignature = { message: editedMessage, senderName: tokenDetails.firstName, senderId: tokenDetails.id, groupId: groupDetails.id, messageId: id};
+        socket.emit('edit-chat-message', messageSignature);
+        // setEditing(true);
     };
 
-    const handleSave = () => {
-        setEditing(false);
-        // onEdit(editedMessage);
-    };
+    // const handleSave = () => {
+    //     setEditing(false);
+    //     // onEdit(editedMessage);
+    // };
 
     const handleManageMembersClick = () => {
         setIsModalVisible(true);
@@ -159,7 +173,7 @@ return (
       registeredUsers={registeredUsers}
     />
 
-    <div style={{ width: '80%', display: 'flex', flexDirection: 'column', height: '64vh' }}>
+    <div style={{ width: '80%', display: 'flex', flexDirection: 'column', height: '60vh' }}>
       {/* Fixed title */}
       <div
         className="chat-name"
@@ -253,6 +267,7 @@ return (
                       <Form.Item style={{ display: 'flex' }}>
                         {/* Save button with tick mark */}
                         <Button
+                          id={`message-${msg.id}`}
                           type="primary"
                           size='small'
                           shape="circle"
@@ -277,7 +292,14 @@ return (
 
                     </Form>
                   ) : (
-                    <div>{msg.message}</div>
+                    <div>
+                      {msg.message}
+                      {msg.edited && (
+                        <span style={{ color: 'grey', fontSize: '0.8em', marginLeft: '4px', verticalAlign: 'sub' }}>
+                          (Edited)
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   {/* Edit Icon for own messages */}

@@ -112,7 +112,7 @@ const ChatsList: React.FC<Props> = ({registeredUsers}) => {
                 height: '65vh',
             }}
         >
-            <div style={{ paddingLeft: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '90%'}} >
+            <div style={{ paddingLeft: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '90%', marginTop: '20px'}} >
                 <h2>My Chats</h2>
                 <PlusCircleTwoTone onClick={showModal}/>
             </div>
