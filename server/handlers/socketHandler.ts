@@ -13,7 +13,14 @@ interface ChatMessageData {
   senderName: string;
   groupId: number;
   senderId: number;
-  type: string
+}
+
+interface NewChatMessageData extends ChatMessageData{
+  type: string;
+}
+
+interface EditedChatMessageData extends ChatMessageData{
+  messageId: number;
 }
 
 // interface TaskUpdateData {
@@ -36,15 +43,30 @@ const socketHandler = (io: Server) => {
       console.log(`${name} joined chatroom ${groupId}`);
     });
 
-    socket.on('new-chat-message', async(data: ChatMessageData) => {
-      const { message, senderName, groupId, senderId } = data;
+    socket.on('new-chat-message', async(data: NewChatMessageData) => {
+      const { message, senderName, groupId, senderId, type } = data;
       console.log("emit a chat>>", message);
       try{
         // Store the message in the Message table
         const id = await Messages.insertMessage(data);
         
         // Broadcast the message to all users in the group, excluding the sender
-        io.to(`group-${groupId}`).emit('chat-message', { message, senderName, senderId, id: id });
+        io.to(`group-${groupId}`).emit('chat-message', { message, senderName, senderId, id: id, type: type });
+        console.log(`Message broadcasted to -> group-${groupId}`);
+      }catch(err){
+        console.log("error while broadcasting to group>>", err);
+      }
+    });
+
+
+    socket.on('edit-chat-message', async(data: EditedChatMessageData) => {
+      const { message, senderName, groupId, senderId, messageId } = data;
+      console.log("edit a chat message>>", message, messageId);
+      try{
+        const id = await Messages.editMessage(data);
+        
+        // Broadcast the message to all users in the group, excluding the sender
+        io.to(`group-${groupId}`).emit('edit-chat-message', { message, senderName, senderId, id: id });//Cannot use the same chat-message channel because it renders new entry on ui. edited message will show up on a new line then
         console.log(`Message broadcasted to -> group-${groupId}`);
       }catch(err){
         console.log("error while broadcasting to group>>", err);

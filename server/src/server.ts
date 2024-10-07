@@ -58,7 +58,7 @@ app.use(cors({
 //Routers
 app.use('/', authRouter);
 app.use('/usergroups',isAuthenticated, usergroupRouter); //All routes have to be authenticated
-app.use('/chat', isAuthenticated, chatRouter); //All routes have to be authenticated
+app.use('/chat', isAuthenticated, chatRouter);
 
 
 // Initialize a new instance of socket.io by passing the HTTP server object
