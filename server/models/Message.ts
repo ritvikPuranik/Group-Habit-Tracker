@@ -32,10 +32,14 @@ const Message = sequelize.define( //stores the message data
             },
             allowNull: true, //If sent by system
         },
-        edited:{
-            type:DataTypes.BOOLEAN,
-            defaultValue: false, // Set default value for 'edited' to false, whenever a new message is created
+        metadata: {
+            type: DataTypes.JSON,
+            defaultValue: {edited: false, deleted: false},
         },
+        // edited:{
+        //     type:DataTypes.BOOLEAN,
+        //     defaultValue: false, // Set default value for 'edited' to false, whenever a new message is created
+        // },
         message_type:{
             type: DataTypes.STRING,
             allowNull: false,

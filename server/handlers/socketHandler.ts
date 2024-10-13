@@ -23,6 +23,10 @@ interface EditedChatMessageData extends ChatMessageData{
   messageId: number;
 }
 
+type DeletedMessageData = {
+  messageId: number
+}
+
 // interface TaskUpdateData {
 //   task: string;
 //   name: string;
@@ -58,10 +62,8 @@ const socketHandler = (io: Server) => {
       }
     });
 
-
     socket.on('edit-chat-message', async(data: EditedChatMessageData) => {
       const { message, senderName, groupId, senderId, messageId } = data;
-      console.log("edit a chat message>>", message, messageId);
       try{
         const id = await Messages.editMessage(data);
         
@@ -72,6 +74,24 @@ const socketHandler = (io: Server) => {
         console.log("error while broadcasting to group>>", err);
       }
     });
+
+    socket.on('delete-chat-message', async(data: DeletedMessageData) => {
+      const { messageId } = data;
+      try{
+        const id = await Messages.deleteMessage(data);
+        console.log(`response from delete message function>>${id}`);
+        const messageInfo = await Messages.getMessage({id: messageId});
+        console.log(`Message Info> ${messageInfo}`);
+        const groupId = 1, senderName = 'a', senderId = 1;
+        
+        // Broadcast the message to all users in the group, excluding the sender
+        io.to(`group-${groupId}`).emit('delete-chat-message', { senderName, senderId, id: id });
+        console.log(`Message broadcasted to -> group-${groupId}`);
+      }catch(err){
+        console.log("error while broadcasting to group>>", err);
+      }
+    });
+
 
     // socket.on('task-update', (data: TaskUpdateData) => {
     //   const { task, name, conversationId, senderId, taskStatus } = data;
