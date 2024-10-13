@@ -60,6 +60,7 @@ const ChatPane: React.FC<Props> = ({ registeredUsers }) => {
     // });
 
     const handleNewChatMessage = (msg: NewMessage) => {
+      console.log(`received newChatMessage>${msg.message}`);
       const { groupId, message, type, senderId, senderName, id } = msg;
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -68,6 +69,7 @@ const ChatPane: React.FC<Props> = ({ registeredUsers }) => {
     };
 
     const handleEditedMessage = (msg: Message) => {
+      console.log(`Entered editMessage>${msg.message}`);
       const { id, message } = msg;
       setMessages((prevMessages) =>
         prevMessages.map((msg) =>
@@ -86,12 +88,14 @@ const ChatPane: React.FC<Props> = ({ registeredUsers }) => {
       );
     };
 
-    socket.on('chat-message', handleNewChatMessage);//This channel is emitted to on new message
+    socket.on('new-chat-message', handleNewChatMessage);//This channel is emitted to on new message
     socket.on('edit-chat-message', handleEditedMessage);//This channel is emitted to on edit message
     socket.on('delete-chat-message', handleDeletedMessage);
 
     return () => {
-      socket.off('chat-message', handleNewChatMessage);
+      socket.off('new-chat-message', handleNewChatMessage);
+      socket.off('edit-chat-message', handleEditedMessage);
+      socket.off('delete-chat-message', handleDeletedMessage);
     };
   }, []);
 
@@ -124,9 +128,9 @@ const ChatPane: React.FC<Props> = ({ registeredUsers }) => {
     const message = formData.message;
 
     // console.log('Message>', message);
+    if (message) {
     const messageSignature = { message, senderName: tokenDetails.firstName, senderId: tokenDetails.id, groupId: groupDetails.id, type: 'user' };
     console.log("messageSignature>>", messageSignature);
-    if (message) {
       socket.emit('new-chat-message', messageSignature);
     }
 
