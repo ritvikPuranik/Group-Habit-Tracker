@@ -9,3 +9,8 @@ The tool currently serves as a chat application, with the following capabilities
 3. Chat in groups - Admins/ members can interact with each other on the groups. Using sockets and chatrooms, the messages are propagated in real time.
 4. Edit message - A member can edit his previously sent messages at any time, and it updates for all the other members. A subscript is presented that says "Edited" for all such messages.
 5. Delete messages - Members of a group can also delete their messages in case of any mistake. It shows as "This message was deleted" on the group. The message, however, is retained in the backend, but not accessible to the end user.
+
+## Screenshots
+
+![Chat Interface](screenshots/ChatPane.png)
+![Register](screenshots/RegisterPage.png)
